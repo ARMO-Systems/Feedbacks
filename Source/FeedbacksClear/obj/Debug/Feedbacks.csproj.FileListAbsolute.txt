@@ -1,0 +1,10 @@
+D:\Projects\Feedbacks\Source\Feedbacks\bin\Debug\CleanOldFeedbacks.exe.config
+D:\Projects\Feedbacks\Source\Feedbacks\bin\Debug\CleanOldFeedbacks.exe
+D:\Projects\Feedbacks\Source\Feedbacks\bin\Debug\CleanOldFeedbacks.pdb
+D:\Projects\Feedbacks\Source\Feedbacks\bin\Debug\Ionic.Zip.dll
+D:\Projects\Feedbacks\Source\Feedbacks\bin\Debug\System.Interactive.dll
+D:\Projects\Feedbacks\Source\Feedbacks\bin\Debug\Ionic.Zip.xml
+D:\Projects\Feedbacks\Source\Feedbacks\bin\Debug\System.Interactive.xml
+D:\Projects\Feedbacks\Source\Feedbacks\obj\Debug\Feedbacks.csprojResolveAssemblyReference.cache
+D:\Projects\Feedbacks\Source\Feedbacks\obj\Debug\CleanOldFeedbacks.exe
+D:\Projects\Feedbacks\Source\Feedbacks\obj\Debug\CleanOldFeedbacks.pdb
