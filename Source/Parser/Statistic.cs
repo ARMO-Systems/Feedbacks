@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using DevExpress.Xpo;
 using Gurock.SmartInspect;
 using Gurock.SmartInspect.SDK;
 
@@ -15,106 +16,99 @@ namespace StatisticApp
         private const string version = "VersionInfo";
 
         private readonly List< string > DBInfoFields = new List< string >
-            {
-                "CategoryXPO",
-                "KorrektirovkaXPO",
-                "DepartmentXPO",
-                "CompanyXPO",
-                "DopSchituvatel1XPO",
-                "BadgeLayoutXPO",
-                "PhotoVerificationXPO",
-                "RabochayaStanciyaXPO",
-                "ReportLayoutXPO",
-                "ReportPluginXPO",
-                "PullZKDevice1XPO",
-                "SagemDevice1XPO",
-                "ZKDevice1XPO",
-                "LogicalElementXPO",
-                "LogicalLinkXPO",
-                "PunktDostupa2XPO",
-                "ShluzXPO",
-                "TochkaRegistraciiXPO",
-                "PullZKTochkaRegistraciiXPO",
-                "HirschTochkaRegistraciiXPO",
-                "KeriTochkaRegistraciiXPO",
-                "SagemTochkaRegistraciiXPO",
-                "ZKTochkaRegistraciiXPO",
-                "EmployerXPO",
-                "GrafikRabotiXPO",
-                "GruppaKontrolnixTochekXPO",
-                "KontrolnayaTochkaXPO",
-                "LenelTochkaRegistraciiXPO",
-                "PostXPO",
-                "RabochayaOblastXPO",
-                "RoleXPO",
-                "RuleXPO",
-                "SagemGruppaDostupaXPO",
-                "SmenaXPO",
-                "VhodXPO",
-                "VihodXPO",
-                "SystemPluginXPO",
-                "TimexOperator2XPO",
-                "UrovenDostupaXPO",
-                "VremennayaZonaXPO",
-                "OblastXPO"
-            };
-
-        private readonly string dirS;
-        private readonly string dirTemp;
-        private readonly bool verboseStatistic;
-        private Dictionary< string, string > dicNamesForDBData;
-        private Dictionary< string, string > dicNamesForOSVer;
-        private readonly string dirScreenshots;
-
-        public Statistic( string dirTemp, string dir, bool verbose = false )
         {
-            this.dirTemp = dirTemp;
-            //this.dirTemp = @"d:\2\";
-            dirS = dir;
-            if ( !Directory.Exists( dirS ) )
-                Directory.CreateDirectory( dirS );
+            "CategoryXPO",
+            "KorrektirovkaXPO",
+            "DepartmentXPO",
+            "CompanyXPO",
+            "DopSchituvatel1XPO",
+            "BadgeLayoutXPO",
+            "PhotoVerificationXPO",
+            "RabochayaStanciyaXPO",
+            "ReportLayoutXPO",
+            "ReportPluginXPO",
+            "PullZKDevice1XPO",
+            "SagemDevice1XPO",
+            "ZKDevice1XPO",
+            "LogicalElementXPO",
+            "LogicalLinkXPO",
+            "PunktDostupa2XPO",
+            "ShluzXPO",
+            "TochkaRegistraciiXPO",
+            "PullZKTochkaRegistraciiXPO",
+            "HirschTochkaRegistraciiXPO",
+            "KeriTochkaRegistraciiXPO",
+            "SagemTochkaRegistraciiXPO",
+            "ZKTochkaRegistraciiXPO",
+            "EmployerXPO",
+            "GrafikRabotiXPO",
+            "GruppaKontrolnixTochekXPO",
+            "KontrolnayaTochkaXPO",
+            "LenelTochkaRegistraciiXPO",
+            "PostXPO",
+            "RabochayaOblastXPO",
+            "RoleXPO",
+            "RuleXPO",
+            "SagemGruppaDostupaXPO",
+            "SmenaXPO",
+            "VhodXPO",
+            "VihodXPO",
+            "SystemPluginXPO",
+            "TimexOperator2XPO",
+            "UrovenDostupaXPO",
+            "VremennayaZonaXPO",
+            "OblastXPO"
+        };
 
-            dirScreenshots = Path.Combine( dirS, "Screenshots" );
+        private readonly Dictionary< string, ClientXPO > clients;
+
+        private readonly string dirScreenshots;
+        private readonly string dirTemp;
+        private readonly UnitOfWork uow;
+        private Dictionary< string, string > dicNamesForOSVer;
+
+        public Statistic()
+        {
+            dirTemp = @"d:\Temp\Extracted\";
+            uow = new UnitOfWork();
+            clients = new XPCollection< ClientXPO >( uow ).ToDictionary( item => item.HASP, item => item );
+            dirScreenshots = @"c:\Temp\Screeens";
 
             if ( !Directory.Exists( dirScreenshots ) )
                 Directory.CreateDirectory( dirScreenshots );
-            verboseStatistic = verbose;
             Init();
             GetStatisticData();
         }
 
         private void Init()
         {
-            Directory.EnumerateFiles( dirS, "*.txt" ).ForEach( File.Delete );
+            //Directory.EnumerateFiles( dirS, "*.txt" ).ForEach( File.Delete );
 
             dicNamesForOSVer = new Dictionary< string, string >();
             dicNamesForOSVer[ "MachineName" ] = "MachineName";
             dicNamesForOSVer[ "OSVersion" ] = "OSVersion";
             dicNamesForOSVer = dicNamesForOSVer.OrderBy( item => item.Value ).ToDictionary( item => item.Key, item => item.Value );
-
-            dicNamesForDBData = new Dictionary< string, string >();
-            dicNamesForDBData = DBInfoFields.OrderBy( item => item ).ToDictionary( item => item, item => item );
         }
 
         private IEnumerable< StatisticData > GetEntrySDs( LogEntry entry )
         {
             var entryValue = new Lazy< string >( () =>
-                                                     {
-                                                         using ( var sr = new StreamReader( entry.Data ) )
-                                                             return sr.ReadToEnd();
-                                                     } );
+                                                 {
+                                                     using ( var sr = new StreamReader( entry.Data ) )
+                                                         return sr.ReadToEnd();
+                                                 } );
 
             Func< string, List< Tuple< string, string > > > getValuesByRegex = regex =>
+                                                                               {
+                                                                                   var matchResult = new Regex( regex ).Match( entryValue.Value );
+                                                                                   var ret = new List< Tuple< string, string > >();
+                                                                                   while ( matchResult.Success )
                                                                                    {
-                                                                                       var matchResult = new Regex( regex ).Match( entryValue.Value );
-                                                                                       var ret = new List< Tuple< string, string > >();
-                                                                                       while ( matchResult.Success )
-                                                                                       {
-                                                                                           ret.Add( new Tuple< string, string >( matchResult.Groups[ 1 ].Value, matchResult.Groups[ 2 ].Value ) );
-                                                                                           matchResult = matchResult.NextMatch();
-                                                                                       }
-                                                                                       return ret;
-                                                                                   };
+                                                                                       ret.Add( new Tuple< string, string >( matchResult.Groups[ 1 ].Value, matchResult.Groups[ 2 ].Value ) );
+                                                                                       matchResult = matchResult.NextMatch();
+                                                                                   }
+                                                                                   return ret;
+                                                                               };
 
             const string regexBeforeKateLogDic38 = "(.*): ([^\r]*)";
             const string regexAfterKateLogDic38 = "(.*)=(.*)\r\n";
@@ -128,15 +122,15 @@ namespace StatisticApp
             var osInfo = infoFromDic( entry.Title == "OSInfo" && !entry.Title.ToLower().Contains( "дамп реестра с эмуляторами" ), tp => new StatisticData( tp.Item1, entry.Timestamp, GetSimpleVersion( tp.Item2 ) ) );
 
             Func< IEnumerable< StatisticData > > oldVer = () =>
-                                                              {
-                                                                  if ( string.IsNullOrEmpty( entry.Title ) || entry.Title[ 0 ] != '3' )
-                                                                      return Enumerable.Empty< StatisticData >();
+                                                          {
+                                                              if ( string.IsNullOrEmpty( entry.Title ) || entry.Title[ 0 ] != '3' )
+                                                                  return Enumerable.Empty< StatisticData >();
 
-                                                                  var cifry = entry.Title.Split( '.' );
-                                                                  return entry.LogEntryType == LogEntryType.Message && cifry.Count() == 4 && cifry[ 0 ] == "3"
-                                                                             ? EnumerableEx.Return( new StatisticData( version, entry.Timestamp, cifry[ 0 ] + "." + cifry[ 1 ] ) )
-                                                                             : Enumerable.Empty< StatisticData >();
-                                                              };
+                                                              var cifry = entry.Title.Split( '.' );
+                                                              return entry.LogEntryType == LogEntryType.Message && cifry.Count() == 4 && cifry[ 0 ] == "3"
+                                                                  ? EnumerableEx.Return( new StatisticData( version, entry.Timestamp, cifry[ 0 ] + "." + cifry[ 1 ] ) )
+                                                                  : Enumerable.Empty< StatisticData >();
+                                                          };
 
             var verInfo = entry.Title == "AppVersion" ? infoFromDic( true, tp => new StatisticData( tp.Item1, entry.Timestamp, tp.Item2 ) ) : oldVer();
 
@@ -155,62 +149,83 @@ namespace StatisticApp
             return dbInfo.Concat( haspInfo ).Concat( osInfo ).Concat( verInfo );
         }
 
-        private static string GetSafeValueFromSDS( IReadOnlyDictionary< string, StatisticData > dic, string key )
-        {
-            return dic.ContainsKey( key ) ? dic[ key ].Value : string.Empty;
-        }
-
         private void GetStatisticData()
         {
-            Func< string, Dictionary< string, StatisticData > > getSdFromDir = dir =>
+            Func< string, Dictionary< string, StatisticData > > getSdFromDir = file =>
+                                                                               {
+                                                                                   try
                                                                                    {
-                                                                                       var ses =
-                                                                                           Directory.EnumerateFiles( dir, "*.*", SearchOption.AllDirectories ).
-                                                                                               SelectMany( item => new LogFile( item ).OfType< LogEntry >() ).
-                                                                                               AsParallel().
-                                                                                               SelectMany( GetEntrySDs ).
-                                                                                               ToList();
+                                                                                       var ses = new LogFile( file ).OfType< LogEntry >().AsEnumerable().AsParallel().SelectMany( GetEntrySDs ).ToList();
 
                                                                                        return ses.GroupBy( sd => sd.Name ).Select( gr => gr.MaxBy( item => item.Time ).First() ).ToArray().ToDictionary( sd => sd.Name, sd => sd );
-                                                                                   };
+                                                                                   }
+                                                                                   catch ( Exception )
+                                                                                   {
+                                                                                       return new Dictionary< string, StatisticData >();
+                                                                                   }
+                                                                               };
 
-            Func< Dictionary< string, StatisticData >, string > getVersionFromSds = sds => GetSafeValueFromSDS( sds, version );
-            Func< Dictionary< string, StatisticData >, string > getHaspAndCompFromSds = sds => GetSafeValueFromSDS( sds, haspid ) + "_" + GetSafeValueFromSDS( sds, "MachineName" );
+            //var list = new List< String >();
+            foreach ( var log in Directory.EnumerateFiles( dirTemp, "*.*", SearchOption.AllDirectories ) )
+            {
+                var s = getSdFromDir( log );
+                if ( !s.ContainsKey( haspid ) )
+                    continue;
 
-            var entriesByFile = Directory.EnumerateDirectories( dirTemp, "*.*" ).Select( getSdFromDir ).Where( dic => dic.Count > 0 && dic.ContainsKey( version ) ).ToList();
-            var info =
-                entriesByFile.GroupBy( getVersionFromSds ).
-                    SelectMany(
-                        item =>
-                        item.GroupBy( getHaspAndCompFromSds ).
-                            Select( item1 => item1.SelectMany( i => i ).GroupBy( sd => sd.Key ).Select( gr => gr.MaxBy( item2 => item2.Value.Time ).First() ).ToDictionary( i => i.Key, i => i.Value ) ) );
-            AppendFile( "OS", dicNamesForOSVer, info );
+                var hasp = s[ haspid ].Value;
+                var client = clients.ContainsKey( hasp ) ? clients[ hasp ] : clients[ hasp ] = new ClientXPO( uow ) { HASP = hasp };
 
-            var infoDb =
-                entriesByFile.GroupBy( getVersionFromSds ).
-                    SelectMany(
-                        item =>
-                        item.GroupBy( sds => GetSafeValueFromSDS( sds, haspid ) ).
-                            Select( item1 => item1.SelectMany( i => i ).GroupBy( sd => sd.Key ).Select( gr => gr.MaxBy( item2 => item2.Value.Time ).First() ).ToDictionary( i => i.Key, i => i.Value ) ) );
-            AppendFile( "DB", dicNamesForDBData, infoDb );
+                SetValueInt( s, "PullZKDevice1XPO", client.PullDevicesCountLastTime, i => client.PullDevicesCount = i, t => client.PullDevicesCountLastTime = t );
+                SetValueInt( s, "ZKDevice1XPO", client.ZKDevicesCountLastTime, i => client.ZKDevicesCount = i, t => client.ZKDevicesCountLastTime = t );
+                SetValueInt( s, "EmployerXPO", client.EmpsCountLastTime, i => client.EmpsCount = i, t => client.EmpsCountLastTime = t );
+                SetValueInt( s, "TimexOperator2XPO", client.OperatorsCountLastTime, i => client.OperatorsCount = i, t => client.OperatorsCountLastTime = t );
+                SetValueInt( s, "Количество сотрудников для учета рабочего времени", client.LicEmpsLastTime, i => client.LicEmps = i, t => client.LicEmpsLastTime = t );
+                SetValueInt( s, "Количество операторов", client.LicOpersLastTime, i => client.LicOpers = i, t => client.LicOpersLastTime = t );
+                SetValueInt( s, "Количество операторов SDK", client.LicOpersSDKLastTime, i => client.LicOpersSDK = i, t => client.LicOpersSDKLastTime = t );
+                SetValueBool( s, "Модуль рабочего времени", client.LicTALastTime, i => client.LicTA = i, t => client.LicTALastTime = t );
+                SetValueBool( s, "Модуль контроля доступа", client.LicACLastTime, i => client.LicAC = i, t => client.LicACLastTime = t );
+                SetValueBool( s, "Модуль фотоверификации", client.LicPhotoLastTime, i => client.LicPhoto = i, t => client.LicPhotoLastTime = t );
+                SetValueBool( s, "Модуль печати", client.LicBadjLastTime, i => client.LicBadj = i, t => client.LicBadjLastTime = t );
+                SetValueString( s, "AppVersion", client.AppVersionLastTime, i => client.AppVersion = i, t => client.AppVersionLastTime = t );
+                SetValueString( s, "ActivationStatus", client.ActivationStatusLastTime, i => client.ActivationStatus = i, t => client.ActivationStatusLastTime = t );
+                SetValueString( s, "Поддержка до", client.SupportToLastTime, i => client.SupportTo = i, t => client.SupportToLastTime = t );
+                // list.AddRange( s.Keys );
+                //var b = MoreEnumerable.ToDelimitedString( list.Distinct().OrderBy( item => item ).ToList(), Environment.NewLine );
+                uow.CommitChanges();
+            }
         }
 
-        private void AppendFile( string stat, Dictionary< string, string > dicNames, IEnumerable< Dictionary< string, StatisticData > > info )
+        private static void SetValueInt( IReadOnlyDictionary< string, StatisticData > s, string key, DateTime time, Action< int? > store, Action< DateTime > timeStore )
         {
-            var file = Path.Combine( dirS, string.Format( "{0}.txt", stat ) );
+            if ( !s.ContainsKey( key ) )
+                return;
+            if ( s[ key ].Time <= time )
+                return;
 
-            File.AppendAllText( file, string.Join( separator, new List< string > { haspid, version, "Time" }.Concat( dicNames.Keys ) ) + Environment.NewLine );
-            File.AppendAllText( file,
-                                string.Join( Environment.NewLine,
-                                             info.OrderBy( item => GetSafeValueFromSDS( item, haspid ) ).
-                                                 Select(
-                                                     item =>
-                                                     string.Join( separator,
-                                                                  ( !verboseStatistic
-                                                                        ? new List< string > { GetSafeValueFromSDS( item, haspid ), GetSafeValueFromSDS( item, version ), item.First().Value.Time.ToShortDateString() }.Concat(
-                                                                            dicNames.Keys.Select( i1 => GetSafeValueFromSDS( item, i1 ) ) )
-                                                                        : item.Values.Select( i => i.Name + "=" + i.Value ) ) ) ) ) );
-            File.AppendAllText( file, Environment.NewLine );
+            timeStore( s[ key ].Time );
+            store( Convert.ToInt32( s[ key ].Value ) );
+        }
+
+        private static void SetValueString( IReadOnlyDictionary< string, StatisticData > s, string key, DateTime time, Action< string > store, Action< DateTime > timeStore )
+        {
+            if ( !s.ContainsKey( key ) )
+                return;
+            if ( s[ key ].Time <= time )
+                return;
+
+            timeStore( s[ key ].Time );
+            store( s[ key ].Value );
+        }
+
+        private static void SetValueBool( IReadOnlyDictionary< string, StatisticData > s, string key, DateTime time, Action< bool? > store, Action< DateTime > timeStore )
+        {
+            if ( !s.ContainsKey( key ) )
+                return;
+            if ( s[ key ].Time <= time )
+                return;
+
+            timeStore( s[ key ].Time );
+            store( Convert.ToBoolean( s[ key ].Value ) );
         }
 
         private static string GetSimpleVersion( string osVersion )
