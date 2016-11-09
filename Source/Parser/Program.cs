@@ -12,20 +12,23 @@ namespace StatisticApp
 {
     internal static class Program
     {
-        private const string DatabasesTimexFeedbacks = @"d:\Temp\Feedbacks\";
+        private const string DatabasesTimexFeedbacks = @"c:\Temp\Feedbacks\";
 
         private static int Main()
         {
             try
             {
-               // ExtractTimexLog();
+                // ExtractTimexLog();
                 var reflectionDict = new ReflectionDictionary();
-                reflectionDict.GetDataStoreSchema( typeof ( ClientXPO ).Assembly );
-                XpoDefault.DataLayer = new ThreadSafeDataLayer( reflectionDict,
-                    new MSSqlConnectionProvider( new SqlConnection( ConfigurationManager.ConnectionStrings[ "ConnectionString" ].ConnectionString ), AutoCreateOption.DatabaseAndSchema ) );
+                reflectionDict.GetDataStoreSchema(typeof(ClientXPO).Assembly);
+                XpoDefault.DataLayer = new ThreadSafeDataLayer(reflectionDict,
+                    new MSSqlConnectionProvider(
+                        new SqlConnection(ConfigurationManager.ConnectionStrings["ConnectionString"].ConnectionString),
+                        AutoCreateOption.DatabaseAndSchema));
                 XpoDefault.Session = null;
 
-                new Statistic();
+                //ExtractTimexLog();
+                 new Statistic();
                 /*switch ( args[ 0 ] )
                 {
                     case "2":
@@ -37,42 +40,51 @@ namespace StatisticApp
                 }*/
                 return 0;
             }
-            catch ( Exception ex )
+            catch (Exception ex)
             {
-                Console.WriteLine( ex.Message + Environment.NewLine + ex.StackTrace );
+                Console.WriteLine(ex.Message + Environment.NewLine + ex.StackTrace);
                 return -1;
             }
         }
 
-        private static void GetStatisticData( string dirTemp, string file, string verbose )
+        /*private static void GetStatisticData( string dirTemp, string file, string verbose )
         {
-            //dirTemp = @"c:\temp\1\";
-            //new Statistic( dirTemp, file, verbose == "1" );
-        }
+            dirTemp = @"c:\temp\1\";
+            new Statistic( dirTemp, file, verbose == "1" );
+        }*/
 
         private static void ExtractTimexLog()
         {
-            const string tempDir = @"C:\Temp\Feedbacks";
-            if ( Directory.Exists( tempDir ) )
-                Directory.Delete( tempDir, true );
+            const string tempDir = @"d:\Temp\Extracted";
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, true);
 
-            foreach ( var file in Directory.EnumerateFiles( DatabasesTimexFeedbacks, "*.zip", SearchOption.AllDirectories ) )
+            foreach (var file in Directory.EnumerateFiles(DatabasesTimexFeedbacks, "*.zip", SearchOption.AllDirectories)
+                )
             {
-                using ( var zip1 = ZipFile.Read( file ) )
+                var dt = File.GetLastWriteTime(file);
+                if (dt <= new DateTime(2016, 5, 1))
+                    continue;
+
+                //Console.WriteLine( file );
+                using (var zip1 = ZipFile.Read(file))
                 {
                     // here, we extract every entry, but we could extract conditionally
                     // based on entry name, size, date, checkbox status, etc.  
-                    var zipExtTemp = Path.Combine( tempDir, Guid.NewGuid().ToString() );
-                    foreach ( var e in zip1.Where( item => !item.IsDirectory && item.LastModified > new DateTime( 2013, 08, 31 ) && Path.GetFileName( item.FileName ).Contains( ".log" ) ) )
-                    {
+                    var zipExtTemp = Path.Combine(tempDir, Guid.NewGuid().ToString());
+                    foreach (
+                        var e in
+                            zip1.Where(
+                                item =>
+                                    !item.IsDirectory && item.LastModified > new DateTime(2013, 08, 31) &&
+                                    Path.GetFileName(item.FileName).Contains(".log")))
                         try
                         {
-                            e.Extract( zipExtTemp );
+                            e.Extract(zipExtTemp);
                         }
-                        catch ( Exception )
+                        catch (Exception)
                         {
                         }
-                    }
                 }
             }
         }

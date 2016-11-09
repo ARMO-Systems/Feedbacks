@@ -36,17 +36,15 @@ namespace CleanOldFeedbacks
             }
         }
 
-        private static IEnumerable< string > GetEmptyDirs( string path )
-        {
-            return !Directory.Exists( path ) || Directory.EnumerateFiles( path, "*", SearchOption.AllDirectories ).Any() ? Enumerable.Empty< string >() : EnumerableEx.Return( path );
-        }
+        private static IEnumerable< string > GetEmptyDirs( string path ) => !Directory.Exists( path ) || Directory.EnumerateFiles( path, "*", SearchOption.AllDirectories ).Any() ? Enumerable.Empty< string >() : EnumerableEx.Return( path );
 
         private static IEnumerable< string > GetBadFiles( string path )
         {
             if ( !Directory.Exists( path ) )
                 return Enumerable.Empty< string >();
+
             var groupsFiles = from file in Directory.EnumerateFiles( path ) let fileInfo = ParseInfoFromFileName( file ) group new { file, fileInfo } by fileInfo.Item1 + fileInfo.Item2;
-            var badIPs = new[] { "62.141.68.238" };
+            var badIPs = new[] { "62.141.68.238", "62.141.88.220"  };
             var badComputerNames = new[] { "DONNA-PC" };
             return groupsFiles.SelectMany( gr =>
                                            {
@@ -64,7 +62,9 @@ namespace CleanOldFeedbacks
             try
             {
                 using ( var zipFile = ZipFile.Read( file ) )
+                {
                     lastTime = ( from zipEntry in zipFile select zipEntry.LastModified ).Max();
+                }
             }
             catch ( Exception )
             {
